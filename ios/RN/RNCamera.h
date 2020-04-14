@@ -3,6 +3,7 @@
 #import <React/RCTBridgeModule.h>
 #import <UIKit/UIKit.h>
 
+#import "TimelapseManager.h"
 #import "FaceDetectorManagerMlkit.h"
 #import "BarcodeDetectorManagerMlkit.h"
 #import "TextDetectorManager.h"

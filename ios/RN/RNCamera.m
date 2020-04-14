@@ -15,6 +15,8 @@
 
 @property (nonatomic, strong) RCTPromiseResolveBlock videoRecordedResolve;
 @property (nonatomic, strong) RCTPromiseRejectBlock videoRecordedReject;
+@property (nonatomic, strong) TimelapseManager *timelapseManager;
+@property (nonatomic, assign) BOOL isInTimelapseMode;
 @property (nonatomic, strong) id textDetector;
 @property (nonatomic, strong) id faceDetector;
 @property (nonatomic, strong) id barcodeDetector;
@@ -59,6 +61,8 @@ BOOL _sessionInterrupted = NO;
         self.session = [AVCaptureSession new];
         self.sessionQueue = dispatch_queue_create("cameraQueue", DISPATCH_QUEUE_SERIAL);
         self.sensorOrientationChecker = [RNSensorOrientationChecker new];
+        self.timelapseManager = [self createTimelapseManager];
+        self.isInTimelapseMode = NO;
         self.textDetector = [self createTextDetector];
         self.faceDetector = [self createFaceDetectorMlKit];
         self.barcodeDetector = [self createBarcodeDetectorMlKit];
@@ -1000,33 +1004,44 @@ BOOL _sessionInterrupted = NO;
     }
 
     NSInteger orientation = [options[@"orientation"] integerValue];
+    BOOL timelapse = [options[@"timelapse"] boolValue];
+    _isInTimelapseMode = timelapse;
 
     // some operations will change our config
     // so we batch config updates, even if inner calls
     // might also call this, only the outermost commit will take effect
     // making the camera changes much faster.
     [self.session beginConfiguration];
-
-
-    if (_movieFileOutput == nil) {
-        // At the time of writing AVCaptureMovieFileOutput and AVCaptureVideoDataOutput (> GMVDataOutput)
-        // cannot coexist on the same AVSession (see: https://stackoverflow.com/a/4986032/1123156).
-        // We stop face detection here and restart it in when AVCaptureMovieFileOutput finishes recording.
-        if ([self.textDetector isRealDetector]) {
-            [self stopTextRecognition];
+    
+    if (timelapse) {
+        [self cleanupMovieFileCapture];
+        [self setupTimelapseProcessing];
+        if (self.timelapseManager == nil || self.timelapseManager.isRecording || _videoRecordedResolve != nil || _videoRecordedReject != nil) {
+            [self.session commitConfiguration];
+          return;
         }
-        if ([self.faceDetector isRealDetector]) {
-            [self stopFaceDetection];
+    } else {
+        if (_movieFileOutput == nil) {
+            // At the time of writing AVCaptureMovieFileOutput and AVCaptureVideoDataOutput (> GMVDataOutput)
+            // cannot coexist on the same AVSession (see: https://stackoverflow.com/a/4986032/1123156).
+            // We stop face detection here and restart it in when AVCaptureMovieFileOutput finishes recording.
+            [self stopTimelapseProcessing];
+            if ([self.textDetector isRealDetector]) {
+                [self stopTextRecognition];
+            }
+            if ([self.faceDetector isRealDetector]) {
+                [self stopFaceDetection];
+            }
+            if ([self.barcodeDetector isRealDetector]) {
+                [self stopBarcodeDetection];
+            }
+            [self setupMovieFileCapture];
         }
-        if ([self.barcodeDetector isRealDetector]) {
-            [self stopBarcodeDetection];
-        }
-        [self setupMovieFileCapture];
-    }
 
-    if (self.movieFileOutput == nil || self.movieFileOutput.isRecording || _videoRecordedResolve != nil || _videoRecordedReject != nil) {
-        [self.session commitConfiguration];
-      return;
+        if (self.movieFileOutput == nil || self.movieFileOutput.isRecording || _videoRecordedResolve != nil || _videoRecordedReject != nil) {
+            [self.session commitConfiguration];
+          return;
+        }
     }
 
 
@@ -1045,7 +1060,7 @@ BOOL _sessionInterrupted = NO;
         }
     }
 
-    AVCaptureConnection *connection = [self.movieFileOutput connectionWithMediaType:AVMediaTypeVideo];
+    AVCaptureConnection *connection = timelapse ? [self.videoDataOutput connectionWithMediaType:AVMediaTypeVideo] : [self.movieFileOutput connectionWithMediaType:AVMediaTypeVideo];
 
     if (self.videoStabilizationMode != 0) {
         if (connection.isVideoStabilizationSupported == NO) {
@@ -1056,7 +1071,7 @@ BOOL _sessionInterrupted = NO;
     }
     [connection setVideoOrientation:orientation];
 
-    BOOL recordAudio = [options valueForKey:@"mute"] == nil || ([options valueForKey:@"mute"] != nil && ![options[@"mute"] boolValue]);
+    BOOL recordAudio = timelapse ? NO : ([options valueForKey:@"mute"] == nil || ([options valueForKey:@"mute"] != nil && ![options[@"mute"] boolValue]));
 
     // sound recording connection, we can easily turn it on/off without manipulating inputs, this prevents flickering.
     // note that mute will also be set to true
@@ -1090,23 +1105,25 @@ BOOL _sessionInterrupted = NO;
 
         // session preset might affect this, so we run this code
         // also in the session queue
+        
+        if (!timelapse) {
+            if (options[@"maxDuration"]) {
+                Float64 maxDuration = [options[@"maxDuration"] floatValue];
+                self.movieFileOutput.maxRecordedDuration = CMTimeMakeWithSeconds(maxDuration, 30);
+            }
 
-        if (options[@"maxDuration"]) {
-            Float64 maxDuration = [options[@"maxDuration"] floatValue];
-            self.movieFileOutput.maxRecordedDuration = CMTimeMakeWithSeconds(maxDuration, 30);
+            if (options[@"maxFileSize"]) {
+                self.movieFileOutput.maxRecordedFileSize = [options[@"maxFileSize"] integerValue];
+            }
         }
 
-        if (options[@"maxFileSize"]) {
-            self.movieFileOutput.maxRecordedFileSize = [options[@"maxFileSize"] integerValue];
-        }
-
-        if (options[@"fps"]) {
+        if (timelapse || options[@"fps"]) {
             AVCaptureDevice *device = [self.videoCaptureDeviceInput device];
             AVCaptureDeviceFormat *activeFormat = device.activeFormat;
             CMFormatDescriptionRef activeDescription = activeFormat.formatDescription;
             CMVideoDimensions activeDimensions = CMVideoFormatDescriptionGetDimensions(activeDescription);
 
-            NSInteger fps = [options[@"fps"] integerValue];
+            NSInteger fps = timelapse ? 30 : [options[@"fps"] integerValue];
             CGFloat desiredFPS = (CGFloat)fps;
 
             AVCaptureDeviceFormat *selectedFormat = nil;
@@ -1141,7 +1158,7 @@ BOOL _sessionInterrupted = NO;
             }
         }
 
-        if (options[@"codec"]) {
+        if (!timelapse && options[@"codec"]) {
             if (@available(iOS 10, *)) {
                 AVVideoCodecType videoCodecType = options[@"codec"];
                 if ([self.movieFileOutput.availableVideoCodecTypes containsObject:videoCodecType]) {
@@ -1199,12 +1216,21 @@ BOOL _sessionInterrupted = NO;
         _recordRequested = YES;
 
         dispatch_after(popTime, self.sessionQueue, ^(void){
+            
+            BOOL canStartRecording = timelapse ? (self.videoDataOutput != nil && self.timelapseManager != nil) : self.movieFileOutput != nil;
+            canStartRecording = canStartRecording && self.videoCaptureDeviceInput != nil && _recordRequested;
 
             // our session might have stopped in between the timeout
             // so make sure it is still valid, otherwise, error and cleanup
-            if(self.movieFileOutput != nil && self.videoCaptureDeviceInput != nil && _recordRequested){
+            if(canStartRecording){
                 NSURL *outputURL = [[NSURL alloc] initFileURLWithPath:path];
-                [self.movieFileOutput startRecordingToOutputFileURL:outputURL recordingDelegate:self];
+                if (timelapse) {
+                    [self.timelapseManager reset];
+                    [self.timelapseManager prepareForRecordingAtURL:outputURL withCaptureVideoDataOutput:self.videoDataOutput options:options];
+                    [self.timelapseManager startRecording];
+                } else {
+                    [self.movieFileOutput startRecordingToOutputFileURL:outputURL recordingDelegate:self];
+                }
                 self.videoRecordedResolve = resolve;
                 self.videoRecordedReject = reject;
 
@@ -1231,6 +1257,27 @@ BOOL _sessionInterrupted = NO;
 - (void)stopRecording
 {
     dispatch_async(self.sessionQueue, ^{
+        if (self.isInTimelapseMode) {
+            if (self.timelapseManager.isRecording) {
+                [self.timelapseManager stopRecordingWithCompletionHandler:^{
+                    NSMutableDictionary *result = [[NSMutableDictionary alloc] init];
+                    result[@"uri"] = self.timelapseManager.outputURL.absoluteString;
+                    result[@"videoOrientation"] = @([self.orientation integerValue]);
+                    result[@"deviceOrientation"] = @([self.deviceOrientation integerValue]);
+                    result[@"isRecordingInterrupted"] = @(self.isRecordingInterrupted);
+                    self.videoRecordedResolve(result);
+                }];
+                [self onRecordingEnd:@{}];
+            } else {
+                if(_recordRequested){
+                    _recordRequested = NO;
+                }
+                else{
+                    RCTLogWarn(@"Video is not recording.");
+                }
+            }
+            return;
+        }
         if ([self.movieFileOutput isRecording]) {
             [self.movieFileOutput stopRecording];
             [self onRecordingEnd:@{}];
@@ -1900,6 +1947,8 @@ BOOL _sessionInterrupted = NO;
     if ([self.textDetector isRealDetector] || [self.faceDetector isRealDetector]) {
         [self cleanupMovieFileCapture];
     }
+    
+    [self setupTimelapseProcessing];
 
     if ([self.textDetector isRealDetector]) {
         [self setupOrDisableTextDetector];
@@ -1962,6 +2011,43 @@ BOOL _sessionInterrupted = NO;
             NSLog(@"Export failed %@", exportSession.error);
         }
     }];
+}
+
+# pragma mark - Timelapse
+
+- (TimelapseManager *)createTimelapseManager
+{
+    return [[TimelapseManager alloc] init];
+}
+
+- (void) setupTimelapseProcessing
+{
+    AVCaptureSessionPreset preset = [self getDefaultPresetVideo];
+    self.session.sessionPreset = preset;
+    if (!self.videoDataOutput) {
+        self.videoDataOutput = [[AVCaptureVideoDataOutput alloc] init];
+        if (![self.session canAddOutput:_videoDataOutput]) {
+            NSLog(@"Failed to setup video data output");
+            [self stopTimelapseProcessing];
+            return;
+        }
+
+        NSDictionary *rgbOutputSettings = [NSDictionary
+            dictionaryWithObject:[NSNumber numberWithInt:kCMPixelFormat_32BGRA]
+                            forKey:(id)kCVPixelBufferPixelFormatTypeKey];
+        [self.videoDataOutput setVideoSettings:rgbOutputSettings];
+        [self.videoDataOutput setAlwaysDiscardsLateVideoFrames:YES];
+        [self.videoDataOutput setSampleBufferDelegate:self queue:self.sessionQueue];
+        [self.session addOutput:_videoDataOutput];
+    }
+}
+
+- (void)stopTimelapseProcessing
+{
+    if (self.videoDataOutput) {
+        [self.session removeOutput:self.videoDataOutput];
+    }
+    self.videoDataOutput = nil;
 }
 
 # pragma mark - FaceDetectorMlkit
@@ -2142,6 +2228,13 @@ BOOL _sessionInterrupted = NO;
     didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
            fromConnection:(AVCaptureConnection *)connection
 {
+    if (self.timelapseManager.isRecording) {
+        [self.timelapseManager processFrame:sampleBuffer];
+        return;
+    } else if (_recordRequested) {
+        return;
+    }
+    
     if (![self.textDetector isRealDetector] && ![self.faceDetector isRealDetector] && ![self.barcodeDetector isRealDetector]) {
         NSLog(@"failing real check");
         return;
