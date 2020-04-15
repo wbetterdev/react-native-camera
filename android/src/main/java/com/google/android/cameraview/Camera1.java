@@ -801,7 +801,7 @@ class Camera1 extends CameraViewImpl implements MediaRecorder.OnInfoListener,
     }
 
     @Override
-    boolean record(String path, int maxDuration, int maxFileSize, boolean recordAudio, boolean timelapse, CamcorderProfile profile, int orientation) {
+    boolean record(String path, int maxDuration, int maxFileSize, boolean recordAudio, boolean timelapse, int timeReductionFactor, CamcorderProfile profile, int orientation) {
 
         // make sure compareAndSet is last because we are setting it
         if (!isPictureCaptureInProgress.get() && mIsRecording.compareAndSet(false, true)) {
@@ -809,7 +809,7 @@ class Camera1 extends CameraViewImpl implements MediaRecorder.OnInfoListener,
                 mOrientation = orientation;
             }
             try {
-                setUpMediaRecorder(path, maxDuration, maxFileSize, recordAudio, timelapse, profile);
+                setUpMediaRecorder(path, maxDuration, maxFileSize, recordAudio, timelapse, timeReductionFactor, profile);
                 mMediaRecorder.prepare();
                 mMediaRecorder.start();
 
@@ -1497,7 +1497,7 @@ class Camera1 extends CameraViewImpl implements MediaRecorder.OnInfoListener,
         mCallback.onFramePreview(data, previewSize.width, previewSize.height, mDeviceOrientation);
     }
 
-    private void setUpMediaRecorder(String path, int maxDuration, int maxFileSize, boolean recordAudio, boolean timelapse, CamcorderProfile profile) {
+    private void setUpMediaRecorder(String path, int maxDuration, int maxFileSize, boolean recordAudio, boolean timelapse, int timeReductionFactor, CamcorderProfile profile) {
 
         mMediaRecorder = new MediaRecorder();
         mCamera.unlock();
@@ -1521,7 +1521,7 @@ class Camera1 extends CameraViewImpl implements MediaRecorder.OnInfoListener,
         camProfile.videoBitRate = profile.videoBitRate;
         setCamcorderProfile(camProfile, recordAudio);
         if (timelapse) {
-            mMediaRecorder.setCaptureRate(camProfile.videoFrameRate / 15.0f);
+            mMediaRecorder.setCaptureRate(camProfile.videoFrameRate / (double)timeReductionFactor);
         }
 
         mMediaRecorder.setOrientationHint(calcCameraRotation(mOrientation != Constants.ORIENTATION_AUTO ? orientationEnumToRotation(mOrientation) : mDeviceOrientation));

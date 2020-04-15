@@ -100,7 +100,7 @@ abstract class CameraViewImpl {
     abstract void takePicture(ReadableMap options);
 
     abstract boolean record(String path, int maxDuration, int maxFileSize,
-                            boolean recordAudio, boolean timelapse, CamcorderProfile profile, int orientation);
+                            boolean recordAudio, boolean timelapse, int timeReductionFactor, CamcorderProfile profile, int orientation);
 
     abstract void stopRecording();
 
