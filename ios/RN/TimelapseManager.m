@@ -7,6 +7,7 @@
 @property (strong, nonatomic) AVAssetWriter *assetWriter;
 @property (strong, nonatomic) AVAssetWriterInput *assetWriterInput;
 
+@property (nonatomic) int timeReductionFactor;
 @property (nonatomic) int frameNumber;
 @property (nonatomic) CMTime frameDuration;
 @property (nonatomic) CMTime nextPTS;
@@ -71,7 +72,6 @@
     }
     compressionProperties[AVVideoExpectedSourceFrameRateKey] = @(30);
     videoSettings[AVVideoCompressionPropertiesKey] = compressionProperties;
-    NSLog(@"***> videoSettings: %@", videoSettings);
     _assetWriterInput = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeVideo outputSettings:videoSettings];
     [_assetWriterInput setExpectsMediaDataInRealTime:YES];
     
@@ -80,6 +80,15 @@
     } else {
         RCTLogWarn(@"TimelapseManager > Could not add asset writer input");
         return NO;
+    }
+    
+    if (options[@"timeReductionFactor"]) {
+        _timeReductionFactor = [options[@"timeReductionFactor"] intValue];
+    } else {
+        _timeReductionFactor = 15;
+    }
+    if (_timeReductionFactor < 1) {
+        _timeReductionFactor = 1;
     }
     
     _nextPTS = kCMTimeZero;
@@ -168,7 +177,7 @@
 - (void)advanceToNextFrame
 {
     ++_frameNumber;
-    if (_frameNumber >= 15) {
+    if (_frameNumber >= _timeReductionFactor) {
         _frameNumber = 0;
     }
 }
