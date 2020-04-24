@@ -278,9 +278,22 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
           int maxDuration = options.hasKey("maxDuration") ? options.getInt("maxDuration") : -1;
           int maxFileSize = options.hasKey("maxFileSize") ? options.getInt("maxFileSize") : -1;
 
-          CamcorderProfile profile = CamcorderProfile.get(CamcorderProfile.QUALITY_HIGH);
+          boolean timelapse = false;
+          if (options.hasKey("timelapse")) {
+            timelapse = options.getBoolean("timelapse");
+          }
+
+          int timeReductionFactor = 15;
+          if (options.hasKey("timeReductionFactor")) {
+            timeReductionFactor = options.getInt("timeReductionFactor");
+          }
+          if (timeReductionFactor < 1) {
+            timeReductionFactor = 1;
+          }
+
+          CamcorderProfile profile = CamcorderProfile.get(timelapse ? CamcorderProfile.QUALITY_TIME_LAPSE_HIGH : CamcorderProfile.QUALITY_HIGH);
           if (options.hasKey("quality")) {
-            profile = RNCameraViewHelper.getCamcorderProfile(options.getInt("quality"));
+            profile = RNCameraViewHelper.getCamcorderProfile(options.getInt("quality"), timelapse);
           }
           if (options.hasKey("videoBitrate")) {
             profile.videoBitRate = options.getInt("videoBitrate");
@@ -290,27 +303,13 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
           if (options.hasKey("mute")) {
             recordAudio = !options.getBoolean("mute");
           }
-
-          int orientation = Constants.ORIENTATION_AUTO;
-          if (options.hasKey("orientation")) {
-            orientation = options.getInt("orientation");
-          }
-
-          boolean timelapse = false;
-          if (options.hasKey("timelapse")) {
-            timelapse = options.getBoolean("timelapse");
-          }
-
           if (timelapse) {
             recordAudio = false;
           }
 
-          int timeReductionFactor = 15;
-          if (options.hasKey("timeReductionFactor")) {
-            timeReductionFactor = options.getInt("timeReductionFactor");
-          }
-          if (timeReductionFactor < 1) {
-            timeReductionFactor = 1;
+          int orientation = Constants.ORIENTATION_AUTO;
+          if (options.hasKey("orientation")) {
+            orientation = options.getInt("orientation");
           }
 
           if (RNCameraView.super.record(path, maxDuration * 1000, maxFileSize, recordAudio, timelapse, timeReductionFactor, profile, orientation)) {

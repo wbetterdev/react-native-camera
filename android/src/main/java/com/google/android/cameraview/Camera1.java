@@ -1516,7 +1516,7 @@ class Camera1 extends CameraViewImpl implements MediaRecorder.OnInfoListener,
         if (CamcorderProfile.hasProfile(mCameraId, profile.quality)) {
             camProfile = CamcorderProfile.get(mCameraId, profile.quality);
         } else {
-            camProfile = CamcorderProfile.get(mCameraId, CamcorderProfile.QUALITY_HIGH);
+            camProfile = CamcorderProfile.get(mCameraId, timelapse ? CamcorderProfile.QUALITY_TIME_LAPSE_HIGH : CamcorderProfile.QUALITY_HIGH);
         }
         camProfile.videoBitRate = profile.videoBitRate;
         setCamcorderProfile(camProfile, recordAudio);

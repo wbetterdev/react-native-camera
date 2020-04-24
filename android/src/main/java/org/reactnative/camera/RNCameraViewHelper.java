@@ -340,27 +340,27 @@ public class RNCameraViewHelper {
             rotation == Constants.LANDSCAPE_270);
   }
 
-  private static int getCamcorderProfileQualityFromCameraModuleConstant(int quality) {
+  private static int getCamcorderProfileQualityFromCameraModuleConstant(int quality, boolean timelapse) {
     switch (quality) {
       case CameraModule.VIDEO_2160P:
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-          return CamcorderProfile.QUALITY_2160P;
+          return timelapse ? CamcorderProfile.QUALITY_TIME_LAPSE_2160P : CamcorderProfile.QUALITY_2160P;
         }
       case CameraModule.VIDEO_1080P:
-        return CamcorderProfile.QUALITY_1080P;
+        return timelapse ? CamcorderProfile.QUALITY_TIME_LAPSE_1080P : CamcorderProfile.QUALITY_1080P;
       case CameraModule.VIDEO_720P:
-        return CamcorderProfile.QUALITY_720P;
+        return timelapse ? CamcorderProfile.QUALITY_TIME_LAPSE_720P : CamcorderProfile.QUALITY_720P;
       case CameraModule.VIDEO_480P:
-        return CamcorderProfile.QUALITY_480P;
+        return timelapse ? CamcorderProfile.QUALITY_TIME_LAPSE_480P : CamcorderProfile.QUALITY_480P;
       case CameraModule.VIDEO_4x3:
-        return CamcorderProfile.QUALITY_480P;
+        return timelapse ? CamcorderProfile.QUALITY_TIME_LAPSE_480P : CamcorderProfile.QUALITY_480P;
     }
-    return CamcorderProfile.QUALITY_HIGH;
+    return timelapse ? CamcorderProfile.QUALITY_TIME_LAPSE_HIGH : CamcorderProfile.QUALITY_HIGH;
   }
 
-  public static CamcorderProfile getCamcorderProfile(int quality) {
-    CamcorderProfile profile = CamcorderProfile.get(CamcorderProfile.QUALITY_HIGH);
-    int camcorderQuality = getCamcorderProfileQualityFromCameraModuleConstant(quality);
+  public static CamcorderProfile getCamcorderProfile(int quality, boolean timelapse) {
+    CamcorderProfile profile = CamcorderProfile.get(timelapse ? CamcorderProfile.QUALITY_TIME_LAPSE_HIGH : CamcorderProfile.QUALITY_HIGH);
+    int camcorderQuality = getCamcorderProfileQualityFromCameraModuleConstant(quality, timelapse);
     if (CamcorderProfile.hasProfile(camcorderQuality)) {
       profile = CamcorderProfile.get(camcorderQuality);
       if (quality == CameraModule.VIDEO_4x3) {
