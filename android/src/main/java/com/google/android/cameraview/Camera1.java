@@ -433,11 +433,7 @@ class Camera1 extends CameraViewImpl implements MediaRecorder.OnInfoListener,
     @Override
     Set<AspectRatio> getSupportedAspectRatios() {
         SizeMap idealAspectRatios = mPreviewSizes;
-        for (AspectRatio aspectRatio : idealAspectRatios.ratios()) {
-            if (mPictureSizes.sizes(aspectRatio) == null) {
-                idealAspectRatios.remove(aspectRatio);
-            }
-        }
+        idealAspectRatios.ratios().removeIf(aspectRatio -> mPictureSizes.sizes(aspectRatio) == null);
         return idealAspectRatios.ratios();
     }
 
@@ -1014,11 +1010,7 @@ class Camera1 extends CameraViewImpl implements MediaRecorder.OnInfoListener,
 
             // to be consistent with Camera2, and to prevent crashes on some devices
             // do not allow preview sizes that are not also in the picture sizes set
-            for (AspectRatio aspectRatio : mPreviewSizes.ratios()) {
-                if (mPictureSizes.sizes(aspectRatio) == null) {
-                    mPreviewSizes.remove(aspectRatio);
-                }
-            }
+            mPreviewSizes.ratios().removeIf(aspectRatio -> mPictureSizes.sizes(aspectRatio) == null);
 
             // AspectRatio
             if (mAspectRatio == null) {
