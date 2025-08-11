@@ -9,8 +9,8 @@
     "logo": "https://opencollective.com/opencollective/logo.txt"
   },
   "dependencies": {
-    "@expo/config-plugins": "~10.0.2",
-    "deprecated-react-native-prop-types": "2.3.0",
+    "@expo/config-plugins": "~10.1.2",
+    "deprecated-react-native-prop-types": "3.0.2",
     "prop-types": "^15.6.2"
   },
   "devDependencies": {
