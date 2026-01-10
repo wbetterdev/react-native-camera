@@ -1,5 +1,6 @@
 package org.reactnative.camera.events;
 
+import androidx.annotation.NonNull;
 import androidx.core.util.Pools;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.WritableMap;
@@ -15,17 +16,17 @@ public class FaceDetectionErrorEvent extends Event<FaceDetectionErrorEvent> {
   private FaceDetectionErrorEvent() {
   }
 
-  public static FaceDetectionErrorEvent obtain(int viewTag, RNFaceDetector faceDetector) {
+  public static FaceDetectionErrorEvent obtain(int surfaceId, int viewTag, RNFaceDetector faceDetector) {
     FaceDetectionErrorEvent event = EVENTS_POOL.acquire();
     if (event == null) {
       event = new FaceDetectionErrorEvent();
     }
-    event.init(viewTag, faceDetector);
+    event.init(surfaceId, viewTag, faceDetector);
     return event;
   }
 
-  private void init(int viewTag, RNFaceDetector faceDetector) {
-    super.init(viewTag);
+  private void init(int surfaceId, int viewTag, RNFaceDetector faceDetector) {
+    super.init(surfaceId, viewTag);
     mFaceDetector = faceDetector;
   }
 
@@ -34,6 +35,7 @@ public class FaceDetectionErrorEvent extends Event<FaceDetectionErrorEvent> {
     return 0;
   }
 
+  @NonNull
   @Override
   public String getEventName() {
     return CameraViewManager.Events.EVENT_ON_FACE_DETECTION_ERROR.toString();

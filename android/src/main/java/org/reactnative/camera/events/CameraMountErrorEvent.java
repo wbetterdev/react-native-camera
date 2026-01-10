@@ -1,5 +1,6 @@
 package org.reactnative.camera.events;
 
+import androidx.annotation.NonNull;
 import androidx.core.util.Pools;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.WritableMap;
@@ -14,17 +15,17 @@ public class CameraMountErrorEvent extends Event<CameraMountErrorEvent> {
   private CameraMountErrorEvent() {
   }
 
-  public static CameraMountErrorEvent obtain(int viewTag, String error) {
+  public static CameraMountErrorEvent obtain(int surfaceId, int viewTag, String error) {
     CameraMountErrorEvent event = EVENTS_POOL.acquire();
     if (event == null) {
       event = new CameraMountErrorEvent();
     }
-    event.init(viewTag, error);
+    event.init(surfaceId, viewTag, error);
     return event;
   }
 
-  private void init(int viewTag, String error) {
-    super.init(viewTag);
+  private void init(int surfaceId, int viewTag, String error) {
+    super.init(surfaceId, viewTag);
     mError = error;
   }
 
@@ -33,6 +34,7 @@ public class CameraMountErrorEvent extends Event<CameraMountErrorEvent> {
     return 0;
   }
 
+  @NonNull
   @Override
   public String getEventName() {
     return CameraViewManager.Events.EVENT_ON_MOUNT_ERROR.toString();

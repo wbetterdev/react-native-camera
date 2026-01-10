@@ -1,5 +1,6 @@
 package org.reactnative.camera.events;
 
+import androidx.annotation.NonNull;
 import androidx.core.util.Pools;
 
 import org.reactnative.camera.CameraViewManager;
@@ -17,17 +18,17 @@ public class FacesDetectedEvent extends Event<FacesDetectedEvent> {
 
   private FacesDetectedEvent() {}
 
-  public static FacesDetectedEvent obtain(int viewTag, WritableArray data) {
+  public static FacesDetectedEvent obtain(int surfaceId, int viewTag, WritableArray data) {
     FacesDetectedEvent event = EVENTS_POOL.acquire();
     if (event == null) {
       event = new FacesDetectedEvent();
     }
-    event.init(viewTag, data);
+    event.init(surfaceId, viewTag, data);
     return event;
   }
 
-  private void init(int viewTag, WritableArray data) {
-    super.init(viewTag);
+  private void init(int surfaceId, int viewTag, WritableArray data) {
+    super.init(surfaceId, viewTag);
     mData = data;
   }
 
@@ -45,6 +46,7 @@ public class FacesDetectedEvent extends Event<FacesDetectedEvent> {
     return (short) mData.size();
   }
 
+  @NonNull
   @Override
   public String getEventName() {
     return CameraViewManager.Events.EVENT_ON_FACES_DETECTED.toString();

@@ -1,5 +1,6 @@
 package org.reactnative.camera.events;
 
+import androidx.annotation.NonNull;
 import androidx.core.util.Pools;
 import android.util.SparseArray;
 import com.facebook.react.bridge.Arguments;
@@ -20,6 +21,7 @@ public class BarcodesDetectedEvent extends Event<BarcodesDetectedEvent> {
   }
 
   public static BarcodesDetectedEvent obtain(
+      int surfaceId,
       int viewTag,
       WritableArray barcodes
   ) {
@@ -27,15 +29,16 @@ public class BarcodesDetectedEvent extends Event<BarcodesDetectedEvent> {
     if (event == null) {
       event = new BarcodesDetectedEvent();
     }
-    event.init(viewTag, barcodes);
+    event.init(surfaceId, viewTag, barcodes);
     return event;
   }
 
   private void init(
+      int surfaceId,
       int viewTag,
       WritableArray barcodes
   ) {
-    super.init(viewTag);
+    super.init(surfaceId, viewTag);
     mBarcodes = barcodes;
   }
 
@@ -53,6 +56,7 @@ public class BarcodesDetectedEvent extends Event<BarcodesDetectedEvent> {
     return (short) mBarcodes.size();
   }
 
+  @NonNull
   @Override
   public String getEventName() {
     return CameraViewManager.Events.EVENT_ON_BARCODES_DETECTED.toString();

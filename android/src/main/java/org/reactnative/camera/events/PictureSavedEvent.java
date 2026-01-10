@@ -1,5 +1,6 @@
 package org.reactnative.camera.events;
 
+import androidx.annotation.NonNull;
 import androidx.core.util.Pools;
 
 import com.facebook.react.bridge.WritableMap;
@@ -11,34 +12,35 @@ import org.reactnative.camera.CameraViewManager;
 public class PictureSavedEvent extends Event<PictureSavedEvent> {
     private static final Pools.SynchronizedPool<PictureSavedEvent> EVENTS_POOL = new Pools.SynchronizedPool<>(5);
     private PictureSavedEvent() {}
-    
+
     private WritableMap mResponse;
-    
-    public static PictureSavedEvent obtain(int viewTag, WritableMap response) {
+
+    public static PictureSavedEvent obtain(int surfaceId, int viewTag, WritableMap response) {
         PictureSavedEvent event = EVENTS_POOL.acquire();
         if (event == null) {
             event = new PictureSavedEvent();
         }
-        event.init(viewTag, response);
+        event.init(surfaceId, viewTag, response);
         return event;
     }
-    
-    private void init(int viewTag, WritableMap response) {
-        super.init(viewTag);
+
+    private void init(int surfaceId, int viewTag, WritableMap response) {
+        super.init(surfaceId, viewTag);
         mResponse = response;
     }
-    
+
     @Override
     public short getCoalescingKey() {
         int hashCode = mResponse.getMap("data").getString("uri").hashCode() % Short.MAX_VALUE;
         return (short) hashCode;
     }
-    
+
+    @NonNull
     @Override
     public String getEventName() {
         return CameraViewManager.Events.EVENT_ON_PICTURE_SAVED.toString();
     }
-    
+
     @Override
     public void dispatch(RCTEventEmitter rctEventEmitter) {
         rctEventEmitter.receiveEvent(getViewTag(), getEventName(), mResponse);

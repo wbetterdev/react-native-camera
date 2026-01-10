@@ -1,5 +1,6 @@
 package org.reactnative.camera.events;
 
+import androidx.annotation.NonNull;
 import androidx.core.util.Pools;
 
 import org.reactnative.camera.CameraViewManager;
@@ -23,17 +24,17 @@ public class BarCodeReadEvent extends Event<BarCodeReadEvent> {
 
   private BarCodeReadEvent() {}
 
-  public static BarCodeReadEvent obtain(int viewTag, Result barCode, int width, int height) {
+  public static BarCodeReadEvent obtain(int surfaceId, int viewTag, Result barCode, int width, int height) {
     BarCodeReadEvent event = EVENTS_POOL.acquire();
     if (event == null) {
       event = new BarCodeReadEvent();
     }
-    event.init(viewTag, barCode, width, height);
+    event.init(surfaceId, viewTag, barCode, width, height);
     return event;
   }
 
-  private void init(int viewTag, Result barCode, int width, int height) {
-    super.init(viewTag);
+  private void init(int surfaceId, int viewTag, Result barCode, int width, int height) {
+    super.init(surfaceId, viewTag);
     mBarCode = barCode;
     mWidth = width;
     mHeight = height;
@@ -52,6 +53,7 @@ public class BarCodeReadEvent extends Event<BarCodeReadEvent> {
     return (short) hashCode;
   }
 
+  @NonNull
   @Override
   public String getEventName() {
     return CameraViewManager.Events.EVENT_ON_BAR_CODE_READ.toString();
@@ -77,7 +79,7 @@ public class BarCodeReadEvent extends Event<BarCodeReadEvent> {
       }
       event.putString("rawData", formatter.toString());
       formatter.close();
-    } 
+    }
 
     event.putString("type", mBarCode.getBarcodeFormat().toString());
     WritableArray resultPoints = Arguments.createArray();

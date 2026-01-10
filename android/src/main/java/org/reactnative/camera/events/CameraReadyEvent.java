@@ -1,5 +1,6 @@
 package org.reactnative.camera.events;
 
+import androidx.annotation.NonNull;
 import androidx.core.util.Pools;
 
 import org.reactnative.camera.CameraViewManager;
@@ -12,12 +13,12 @@ public class CameraReadyEvent extends Event<CameraReadyEvent> {
   private static final Pools.SynchronizedPool<CameraReadyEvent> EVENTS_POOL = new Pools.SynchronizedPool<>(3);
   private CameraReadyEvent() {}
 
-  public static CameraReadyEvent obtain(int viewTag) {
+  public static CameraReadyEvent obtain(int surfaceId, int viewTag) {
     CameraReadyEvent event = EVENTS_POOL.acquire();
     if (event == null) {
       event = new CameraReadyEvent();
     }
-    event.init(viewTag);
+    event.init(surfaceId, viewTag);
     return event;
   }
 
@@ -26,6 +27,7 @@ public class CameraReadyEvent extends Event<CameraReadyEvent> {
     return 0;
   }
 
+  @NonNull
   @Override
   public String getEventName() {
     return CameraViewManager.Events.EVENT_CAMERA_READY.toString();

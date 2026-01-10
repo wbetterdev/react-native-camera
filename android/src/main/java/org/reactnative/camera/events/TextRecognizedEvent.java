@@ -1,5 +1,6 @@
 package org.reactnative.camera.events;
 
+import androidx.annotation.NonNull;
 import androidx.core.util.Pools;
 
 import com.facebook.react.bridge.Arguments;
@@ -20,20 +21,21 @@ public class TextRecognizedEvent extends Event<TextRecognizedEvent> {
 
   private TextRecognizedEvent() {}
 
-  public static TextRecognizedEvent obtain(int viewTag, WritableArray data) {
+  public static TextRecognizedEvent obtain(int surfaceId, int viewTag, WritableArray data) {
     TextRecognizedEvent event = EVENTS_POOL.acquire();
     if (event == null) {
       event = new TextRecognizedEvent();
     }
-    event.init(viewTag, data);
+    event.init(surfaceId, viewTag, data);
     return event;
   }
 
-  private void init(int viewTag, WritableArray data) {
-    super.init(viewTag);
+  private void init(int surfaceId, int viewTag, WritableArray data) {
+    super.init(surfaceId, viewTag);
     mData = data;
   }
 
+  @NonNull
   @Override
   public String getEventName() {
     return CameraViewManager.Events.EVENT_ON_TEXT_RECOGNIZED.toString();

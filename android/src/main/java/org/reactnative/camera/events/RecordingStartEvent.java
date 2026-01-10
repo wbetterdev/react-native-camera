@@ -1,5 +1,6 @@
 package org.reactnative.camera.events;
 
+import androidx.annotation.NonNull;
 import androidx.core.util.Pools;
 
 import org.reactnative.camera.CameraViewManager;
@@ -14,17 +15,17 @@ public class RecordingStartEvent extends Event<RecordingStartEvent> {
 
     private WritableMap mResponse;
 
-    public static RecordingStartEvent obtain(int viewTag, WritableMap response) {
+    public static RecordingStartEvent obtain(int surfaceId, int viewTag, WritableMap response) {
         RecordingStartEvent event = EVENTS_POOL.acquire();
         if (event == null) {
         event = new RecordingStartEvent();
         }
-        event.init(viewTag, response);
+        event.init(surfaceId, viewTag, response);
         return event;
     }
 
-    private void init(int viewTag, WritableMap response) {
-        super.init(viewTag);
+    private void init(int surfaceId, int viewTag, WritableMap response) {
+        super.init(surfaceId, viewTag);
         mResponse = response;
     }
 
@@ -34,6 +35,7 @@ public class RecordingStartEvent extends Event<RecordingStartEvent> {
     //     return (short) hashCode;
     // }
 
+    @NonNull
     @Override
     public String getEventName() {
         return CameraViewManager.Events.EVENT_ON_RECORDING_START.toString();
